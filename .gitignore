@@ -1,0 +1,66 @@
+# .gitignore for TimeTable project (Java backend + Node frontend)
+
+# Maven / Java
+/backend/target/
+*.class
+*.jar
+*.war
+*.ear
+*.log
+
+# Maven wrapper and build
+/.mvn/
+mvnw
+mvnw.cmd
+
+# IDEs and editors
+/.idea/
+*.iml
+.classpath
+.project
+.settings/
+/.vscode/
+
+# Node / frontend
+/frontend/node_modules/
+/frontend/dist/
+/frontend/build/
+/frontend/.parcel-cache/
+/frontend/.vite/
+
+# Environment files
+*.env
+*.env.*
+/frontend/.env
+
+# OS files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Misc
+*.swp
+*~
+
+# Sensitive Data
+*.key
+*.pem
+*.pfx
+*.p12
+*.jks
+credentials.json
+client_secret.json
+secrets.yml
+application-secret.properties
+application-dev.properties
+*.sqlite
+*.sqlite3
+.aws/
+.gcp/
+.azure/
