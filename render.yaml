@@ -1,0 +1,24 @@
+services:
+  # Backend Web Service (Spring Boot)
+  - type: web
+    name: timetable-backend
+    env: docker
+    dockerContext: .
+    dockerfilePath: ./backend/Dockerfile
+    envVars:
+      - key: SPRING_DATA_MONGODB_URI
+        sync: false # You will provide your MongoDB Atlas URI here
+      - key: APP_JWT_SECRET
+        sync: false # Provide a secure 64-character secret
+      - key: APP_GEMINI_API_KEY
+        sync: false # Provide your Gemini API key
+
+  # Frontend Static Site (React/Vite)
+  - type: web
+    name: timetable-frontend
+    env: static
+    buildCommand: cd frontend && npm install && npm run build
+    staticPublishPath: ./frontend/dist
+    envVars:
+      - key: VITE_API_URL
+        sync: false # You will set this to your backend's Render URL (e.g., https://timetable-backend.onrender.com/api)
