@@ -19,4 +19,15 @@ public class StudentAdminController {
     public List<Student> getAll() {
         return studentRepository.findAll();
     }
+
+    @org.springframework.web.bind.annotation.PutMapping("/{id}")
+    public Student update(@org.springframework.web.bind.annotation.PathVariable String id, @org.springframework.web.bind.annotation.RequestBody Student student) {
+        studentRepository.findByRegisterNumber(student.getRegisterNumber()).ifPresent(existing -> {
+            if (!existing.getId().equals(id)) {
+                throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.BAD_REQUEST, "Register number already exists");
+            }
+        });
+        student.setId(id);
+        return studentRepository.save(student);
+    }
 }

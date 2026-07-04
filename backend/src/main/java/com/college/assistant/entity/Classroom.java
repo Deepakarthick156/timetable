@@ -12,4 +12,5 @@ public class Classroom {
 
     private String roomNumber;
     private String type; // e.g., CLASS, LAB
+    private String address; // e.g., "Main Block, 2nd Floor"
 }

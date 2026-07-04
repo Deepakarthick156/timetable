@@ -9,7 +9,9 @@ import {
   LogOut,
   Megaphone,
   Moon,
+  Pencil,
   Plus,
+  Search,
   Sun,
   Trash2,
   UserPlus,
@@ -26,7 +28,7 @@ const simpleResources = [
   { key: 'academicYears', label: 'Years', endpoint: '/admin/academicYears', icon: Layers, fields: ['yearName', 'level'] },
   { key: 'sections', label: 'Sections', endpoint: '/admin/sections', icon: Users, fields: ['name'] },
   { key: 'subjects', label: 'Subjects', endpoint: '/admin/subjects', icon: BookOpen, fields: ['name', 'code', 'type'] },
-  { key: 'classrooms', label: 'Classrooms', endpoint: '/admin/classrooms', icon: CalendarPlus, fields: ['roomNumber', 'type'] },
+  { key: 'classrooms', label: 'Classrooms', endpoint: '/admin/classrooms', icon: CalendarPlus, fields: ['roomNumber', 'type', 'address'] },
   { key: 'holidays', label: 'Holidays', endpoint: '/admin/holidays', icon: CalendarPlus, fields: ['name', 'holidayDate', 'type'] },
 ];
 
@@ -107,6 +109,7 @@ export default function AdminDashboard() {
   const { darkMode, toggleDarkMode } = useDarkMode();
   const [active, setActive] = useState(navItems[0].key);
   const [data, setData] = useState<Record<string, Entity[]>>({});
+  const [editingIds, setEditingIds] = useState<Record<string, string | null>>({});
   const [forms, setForms] = useState<Record<string, Entity>>({});
   const [timetableForm, setTimetableForm] = useState(blankTimetable);
   const [assessmentForm, setAssessmentForm] = useState(blankAssessment);
@@ -162,7 +165,13 @@ export default function AdminDashboard() {
 
   const createResource = async (resource: (typeof simpleResources)[number]) => {
     const payload = forms[resource.key] ?? {};
-    await api.post(resource.endpoint, normalizePayload(payload));
+    const editingId = editingIds[resource.key];
+    if (editingId) {
+      await api.put(`${resource.endpoint}/${editingId}`, normalizePayload(payload));
+      setEditingIds((prev) => ({ ...prev, [resource.key]: null }));
+    } else {
+      await api.post(resource.endpoint, normalizePayload(payload));
+    }
     setForms((prev) => ({ ...prev, [resource.key]: {} }));
     await loadAll();
   };
@@ -174,16 +183,24 @@ export default function AdminDashboard() {
 
   const createFaculty = async () => {
     const payload = forms.facultys ?? {};
-    await api.post('/admin/facultys', {
+    const editingId = editingIds['facultys'];
+    const data = {
       name: payload.name,
       department: payload.departmentId ? { id: payload.departmentId } : null,
-    });
+    };
+    if (editingId) {
+      await api.put(`/admin/facultys/${editingId}`, data);
+      setEditingIds((prev) => ({ ...prev, facultys: null }));
+    } else {
+      await api.post('/admin/facultys', data);
+    }
     setForms((prev) => ({ ...prev, facultys: {} }));
     await loadAll();
   };
 
   const createTimetable = async () => {
-    await api.post('/admin/timetables', {
+    const editingId = editingIds['timetables'];
+    const data = {
       dayOfWeek: timetableForm.dayOfWeek,
       startTime: timetableForm.startTime,
       endTime: timetableForm.endTime,
@@ -193,24 +210,38 @@ export default function AdminDashboard() {
       subject: { id: timetableForm.subjectId },
       faculty: { id: timetableForm.facultyId },
       classroom: { id: timetableForm.classroomId },
-    });
+    };
+    if (editingId) {
+      await api.put(`/admin/timetables/${editingId}`, data);
+      setEditingIds((prev) => ({ ...prev, timetables: null }));
+    } else {
+      await api.post('/admin/timetables', data);
+    }
     setTimetableForm(blankTimetable);
     await loadAll();
   };
 
   const createAnnouncement = async () => {
-    await api.post('/admin/announcements', {
+    const editingId = editingIds['announcements'];
+    const data = {
       title: announcementForm.title,
       content: announcementForm.content,
       targetDepartment: announcementForm.targetDepartmentId ? { id: announcementForm.targetDepartmentId } : null,
       targetYear: announcementForm.targetYearId ? { id: announcementForm.targetYearId } : null,
-    });
+    };
+    if (editingId) {
+      await api.put(`/admin/announcements/${editingId}`, data);
+      setEditingIds((prev) => ({ ...prev, announcements: null }));
+    } else {
+      await api.post('/admin/announcements', data);
+    }
     setAnnouncementForm({ title: '', content: '', targetDepartmentId: '', targetYearId: '' });
     await loadAll();
   };
 
   const createAssessment = async () => {
-    await api.post('/admin/assessments', {
+    const editingId = editingIds['assessments'];
+    const data = {
       title: assessmentForm.title,
       assessmentDate: assessmentForm.assessmentDate,
       maxMarks: Number(assessmentForm.maxMarks),
@@ -218,13 +249,20 @@ export default function AdminDashboard() {
       year: { id: assessmentForm.yearId },
       section: { id: assessmentForm.sectionId },
       subject: { id: assessmentForm.subjectId },
-    });
+    };
+    if (editingId) {
+      await api.put(`/admin/assessments/${editingId}`, data);
+      setEditingIds((prev) => ({ ...prev, assessments: null }));
+    } else {
+      await api.post('/admin/assessments', data);
+    }
     setAssessmentForm(blankAssessment);
     await loadAll();
   };
 
   const createExam = async () => {
-    await api.post('/admin/exams', {
+    const editingId = editingIds['exams'];
+    const data = {
       examName: examForm.examName,
       examDate: examForm.examDate,
       startTime: examForm.startTime,
@@ -234,47 +272,84 @@ export default function AdminDashboard() {
       section: { id: examForm.sectionId },
       subject: { id: examForm.subjectId },
       classroom: { id: examForm.classroomId },
-    });
+    };
+    if (editingId) {
+      await api.put(`/admin/exams/${editingId}`, data);
+      setEditingIds((prev) => ({ ...prev, exams: null }));
+    } else {
+      await api.post('/admin/exams', data);
+    }
     setExamForm(blankExam);
     await loadAll();
   };
 
   const createAttendance = async () => {
-    await api.post('/admin/attendance', {
+    const editingId = editingIds['attendance'];
+    const data = {
       totalClasses: Number(attendanceForm.totalClasses),
       attendedClasses: Number(attendanceForm.attendedClasses),
       student: { id: attendanceForm.studentId },
       subject: { id: attendanceForm.subjectId },
-    });
+    };
+    if (editingId) {
+      await api.put(`/admin/attendance/${editingId}`, data);
+      setEditingIds((prev) => ({ ...prev, attendance: null }));
+    } else {
+      await api.post('/admin/attendance', data);
+    }
     setAttendanceForm(blankAttendance);
     await loadAll();
   };
 
   const createInternalMark = async () => {
-    await api.post('/admin/internalMarks', {
+    const editingId = editingIds['internalMarks'];
+    const data = {
       assessmentName: internalMarkForm.assessmentName,
       marks: Number(internalMarkForm.marks),
       maxMarks: Number(internalMarkForm.maxMarks),
       student: { id: internalMarkForm.studentId },
       subject: { id: internalMarkForm.subjectId },
-    });
+    };
+    if (editingId) {
+      await api.put(`/admin/internalMarks/${editingId}`, data);
+      setEditingIds((prev) => ({ ...prev, internalMarks: null }));
+    } else {
+      await api.post('/admin/internalMarks', data);
+    }
     setInternalMarkForm(blankInternalMark);
     await loadAll();
   };
 
   const createStudent = async () => {
-    await api.post('/auth/register', {
-      username: studentForm.username,
-      password: studentForm.password,
-      role: 'STUDENT',
-      registerNumber: studentForm.registerNumber,
-      name: studentForm.name,
-      departmentId: studentForm.departmentId,
-      yearId: studentForm.yearId,
-      sectionId: studentForm.sectionId,
-    });
-    setStudentForm(blankStudent);
-    await loadAll();
+    try {
+      const editingId = editingIds['students'];
+      const data = {
+        username: studentForm.username,
+        password: studentForm.password,
+        role: 'STUDENT',
+        registerNumber: studentForm.registerNumber,
+        name: studentForm.name,
+        departmentId: studentForm.departmentId,
+        yearId: studentForm.yearId,
+        sectionId: studentForm.sectionId,
+      };
+      if (editingId) {
+        await api.put(`/admin/students/${editingId}`, {
+          registerNumber: studentForm.registerNumber,
+          name: studentForm.name,
+          department: { id: studentForm.departmentId },
+          year: { id: studentForm.yearId },
+          section: { id: studentForm.sectionId },
+        });
+        setEditingIds((prev) => ({ ...prev, students: null }));
+      } else {
+        await api.post('/auth/register', data);
+      }
+      setStudentForm(blankStudent);
+      await loadAll();
+    } catch (error: any) {
+      alert(error.response?.data?.message || 'Failed to save student account. Make sure the register number is unique.');
+    }
   };
 
   const activeSimpleResource = simpleResources.find((resource) => resource.key === active);
@@ -356,6 +431,8 @@ export default function AdminDashboard() {
                 setForm={(next: Entity) => setForms((prev) => ({ ...prev, [activeSimpleResource.key]: next }))}
                 onCreate={() => createResource(activeSimpleResource)}
                 onDelete={(id: string) => deleteResource(activeSimpleResource.endpoint, id)}
+                editingId={editingIds[activeSimpleResource.key]}
+                setEditingId={(id: string | null) => setEditingIds((prev) => ({ ...prev, [activeSimpleResource.key]: id }))}
               />
             )}
 
@@ -377,8 +454,14 @@ export default function AdminDashboard() {
                     ))}
                   </Select>
                 </div>
-                <ActionButton label="Add announcement" onClick={createAnnouncement} />
-                <SimpleRows rows={data.announcements ?? []} columns={['title', 'content', 'targetDepartment', 'targetYear']} endpoint="/admin/announcements" reload={loadAll} />
+                <ActionButton label={editingIds['announcements'] ? "Update announcement" : "Add announcement"} onClick={createAnnouncement} />
+                <SimpleRows 
+                  rows={data.announcements ?? []} 
+                  columns={['title', 'content', 'targetDepartment', 'targetYear']} 
+                  endpoint="/admin/announcements" 
+                  reload={loadAll} 
+                  onEdit={(row: any) => { setAnnouncementForm(flattenRow(row)); setEditingIds(prev => ({...prev, announcements: row.id})) }} 
+                />
               </AdminPanel>
             )}
 
@@ -392,9 +475,15 @@ export default function AdminDashboard() {
                       <option key={department.id} value={department.id}>{department.code || department.name}</option>
                     ))}
                   </Select>
-                  <IconButton label="Add faculty" onClick={createFaculty} />
+                  <IconButton label={editingIds['facultys'] ? "Update faculty" : "Add faculty"} onClick={createFaculty} />
                 </div>
-                <SimpleRows rows={faculty} columns={['name', 'department']} endpoint="/admin/facultys" reload={loadAll} />
+                <SimpleRows 
+                  rows={faculty} 
+                  columns={['name', 'department']} 
+                  endpoint="/admin/facultys" 
+                  reload={loadAll}
+                  onEdit={(row: any) => { setForms(prev => ({...prev, facultys: flattenRow(row)})); setEditingIds(prev => ({...prev, facultys: row.id})) }} 
+                />
               </AdminPanel>
             )}
 
@@ -431,8 +520,14 @@ export default function AdminDashboard() {
                     {classrooms.map((item) => <option key={item.id} value={item.id}>{item.roomNumber}</option>)}
                   </Select>
                 </div>
-                <ActionButton label="Add timetable row" onClick={createTimetable} />
-                <SimpleRows rows={timetable} columns={['dayOfWeek', 'subject', 'faculty', 'classroom']} endpoint="/admin/timetables" reload={loadAll} />
+                <ActionButton label={editingIds['timetables'] ? "Update timetable row" : "Add timetable row"} onClick={createTimetable} />
+                <SimpleRows 
+                  rows={timetable} 
+                  columns={['dayOfWeek', 'subject', 'faculty', 'classroom']} 
+                  endpoint="/admin/timetables" 
+                  reload={loadAll}
+                  onEdit={(row: any) => { setTimetableForm(flattenRow(row)); setEditingIds(prev => ({...prev, timetables: row.id})) }} 
+                />
               </AdminPanel>
             )}
 
@@ -444,8 +539,14 @@ export default function AdminDashboard() {
                   <Input value={assessmentForm.maxMarks} placeholder="Max marks" onChange={(value) => setAssessmentForm((prev) => ({ ...prev, maxMarks: value }))} />
                   <RelationSelects form={assessmentForm} setForm={setAssessmentForm} departments={departments} years={years} sections={sections} subjects={subjects} />
                 </div>
-                <ActionButton label="Add assessment" onClick={createAssessment} />
-                <SimpleRows rows={data.assessments ?? []} columns={['title', 'assessmentDate', 'subject', 'maxMarks']} endpoint="/admin/assessments" reload={loadAll} />
+                <ActionButton label={editingIds['assessments'] ? "Update assessment" : "Add assessment"} onClick={createAssessment} />
+                <SimpleRows 
+                  rows={data.assessments ?? []} 
+                  columns={['title', 'assessmentDate', 'subject', 'maxMarks']} 
+                  endpoint="/admin/assessments" 
+                  reload={loadAll}
+                  onEdit={(row: any) => { setAssessmentForm(flattenRow(row)); setEditingIds(prev => ({...prev, assessments: row.id})) }} 
+                />
               </AdminPanel>
             )}
 
@@ -462,8 +563,14 @@ export default function AdminDashboard() {
                     {classrooms.map((item) => <option key={item.id} value={item.id}>{item.roomNumber}</option>)}
                   </Select>
                 </div>
-                <ActionButton label="Add exam" onClick={createExam} />
-                <SimpleRows rows={data.exams ?? []} columns={['examName', 'examDate', 'subject', 'classroom']} endpoint="/admin/exams" reload={loadAll} />
+                <ActionButton label={editingIds['exams'] ? "Update exam" : "Add exam"} onClick={createExam} />
+                <SimpleRows 
+                  rows={data.exams ?? []} 
+                  columns={['examName', 'examDate', 'subject', 'classroom']} 
+                  endpoint="/admin/exams" 
+                  reload={loadAll}
+                  onEdit={(row: any) => { setExamForm(flattenRow(row)); setEditingIds(prev => ({...prev, exams: row.id})) }} 
+                />
               </AdminPanel>
             )}
 
@@ -481,8 +588,14 @@ export default function AdminDashboard() {
                   <Input value={attendanceForm.totalClasses} placeholder="Total classes" onChange={(value) => setAttendanceForm((prev) => ({ ...prev, totalClasses: value }))} />
                   <Input value={attendanceForm.attendedClasses} placeholder="Attended classes" onChange={(value) => setAttendanceForm((prev) => ({ ...prev, attendedClasses: value }))} />
                 </div>
-                <ActionButton label="Add attendance" onClick={createAttendance} />
-                <SimpleRows rows={data.attendance ?? []} columns={['student', 'subject', 'attendedClasses', 'totalClasses']} endpoint="/admin/attendance" reload={loadAll} />
+                <ActionButton label={editingIds['attendance'] ? "Update attendance" : "Add attendance"} onClick={createAttendance} />
+                <SimpleRows 
+                  rows={data.attendance ?? []} 
+                  columns={['student', 'subject', 'attendedClasses', 'totalClasses']} 
+                  endpoint="/admin/attendance" 
+                  reload={loadAll}
+                  onEdit={(row: any) => { setAttendanceForm(flattenRow(row)); setEditingIds(prev => ({...prev, attendance: row.id})) }} 
+                />
               </AdminPanel>
             )}
 
@@ -501,22 +614,33 @@ export default function AdminDashboard() {
                   <Input value={internalMarkForm.marks} placeholder="Marks" onChange={(value) => setInternalMarkForm((prev) => ({ ...prev, marks: value }))} />
                   <Input value={internalMarkForm.maxMarks} placeholder="Max marks" onChange={(value) => setInternalMarkForm((prev) => ({ ...prev, maxMarks: value }))} />
                 </div>
-                <ActionButton label="Add internal mark" onClick={createInternalMark} />
-                <SimpleRows rows={data.internalMarks ?? []} columns={['student', 'subject', 'assessmentName', 'marks', 'maxMarks']} endpoint="/admin/internalMarks" reload={loadAll} />
+                <ActionButton label={editingIds['internalMarks'] ? "Update internal mark" : "Add internal mark"} onClick={createInternalMark} />
+                <SimpleRows 
+                  rows={data.internalMarks ?? []} 
+                  columns={['student', 'subject', 'assessmentName', 'marks', 'maxMarks']} 
+                  endpoint="/admin/internalMarks" 
+                  reload={loadAll}
+                  onEdit={(row: any) => { setInternalMarkForm(flattenRow(row)); setEditingIds(prev => ({...prev, internalMarks: row.id})) }} 
+                />
               </AdminPanel>
             )}
 
             {active === 'students' && (
               <AdminPanel title="Student Accounts">
                 <div className="grid gap-2 sm:grid-cols-3">
-                  <Input value={studentForm.username} placeholder="Username" onChange={(value) => setStudentForm((prev) => ({ ...prev, username: value }))} />
-                  <Input value={studentForm.password} placeholder="Password" type="password" onChange={(value) => setStudentForm((prev) => ({ ...prev, password: value }))} />
+                  <Input value={studentForm.username} placeholder="Username" autoComplete="new-password" onChange={(value) => setStudentForm((prev) => ({ ...prev, username: value }))} />
+                  <Input value={studentForm.password} placeholder="Password" type="password" autoComplete="new-password" onChange={(value) => setStudentForm((prev) => ({ ...prev, password: value }))} />
                   <Input value={studentForm.registerNumber} placeholder="Register number" onChange={(value) => setStudentForm((prev) => ({ ...prev, registerNumber: value }))} />
                   <Input value={studentForm.name} placeholder="Full name" onChange={(value) => setStudentForm((prev) => ({ ...prev, name: value }))} />
                   <RelationSelects form={studentForm} setForm={setStudentForm} departments={departments} years={years} sections={sections} />
                 </div>
-                <ActionButton label="Create student account" onClick={createStudent} />
-                <SimpleRows rows={students} columns={['registerNumber', 'name', 'department', 'year', 'section']} />
+                <ActionButton label={editingIds['students'] ? "Update student account" : "Create student account"} onClick={createStudent} />
+                <SimpleRows 
+                  rows={students} 
+                  columns={['registerNumber', 'name', 'department', 'year', 'section']} 
+                  onEdit={(row: any) => { setStudentForm(flattenRow(row)); setEditingIds(prev => ({...prev, students: row.id})) }}
+                  onDelete={async (id: string) => { await api.delete(`/admin/students/${id}`); await loadAll(); }}
+                />
               </AdminPanel>
             )}
           </section>
@@ -574,7 +698,12 @@ function AdminPanel({ title, children }: { title: string; children: ReactNode })
   );
 }
 
-function ResourcePanel({ resource, rows, form, setForm, onCreate, onDelete }: any) {
+function ResourcePanel({ resource, rows, form, setForm, onCreate, onDelete, editingId, setEditingId }: any) {
+  const handleEdit = (row: any) => {
+    setForm(row);
+    setEditingId(row.id);
+  };
+
   return (
     <div className="rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -589,15 +718,28 @@ function ResourcePanel({ resource, rows, form, setForm, onCreate, onDelete }: an
               onChange={(value: string) => setForm({ ...form, [field]: value })}
             />
           ))}
-          <IconButton label={`Add ${resource.label}`} onClick={onCreate} />
+          <IconButton label={editingId ? `Update ${resource.label}` : `Add ${resource.label}`} onClick={onCreate} />
         </div>
       </div>
-      <SimpleRows rows={rows} columns={resource.fields} onDelete={onDelete} />
+      <SimpleRows rows={rows} columns={resource.fields} onDelete={onDelete} onEdit={handleEdit} />
     </div>
   );
 }
 
-function SimpleRows({ rows, columns, onDelete, endpoint, reload }: any) {
+function SimpleRows({ rows, columns, onDelete, endpoint, reload, onEdit }: any) {
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const filteredRows = useMemo(() => {
+    if (!searchQuery) return rows;
+    const lower = searchQuery.toLowerCase();
+    return rows.filter((row: Entity) => {
+      return columns.some((col: string) => {
+        const val = displayValue(row[col]);
+        return String(val).toLowerCase().includes(lower);
+      });
+    });
+  }, [rows, columns, searchQuery]);
+
   const deleteRow = async (id: string) => {
     if (onDelete) {
       await onDelete(id);
@@ -610,45 +752,69 @@ function SimpleRows({ rows, columns, onDelete, endpoint, reload }: any) {
   };
 
   return (
-    <div className="mt-4 overflow-x-auto">
-      <table className="w-full min-w-[560px] text-left text-sm">
-        <thead>
-          <tr className="border-b border-zinc-200 text-xs uppercase text-zinc-500 dark:border-zinc-800">
+    <div className="mt-4 flex flex-col gap-3">
+      <div className="relative max-w-sm">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" size={16} />
+        <input
+          type="text"
+          placeholder="Search..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="h-9 w-full rounded-md border border-zinc-300 bg-white pl-9 pr-3 text-sm outline-none focus:border-sky-600 focus:ring-1 focus:ring-sky-600 dark:border-zinc-700 dark:bg-zinc-950 dark:focus:border-sky-500"
+        />
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[560px] text-left text-sm">
+          <thead>
+            <tr className="border-b border-zinc-200 text-xs uppercase text-zinc-500 dark:border-zinc-800">
             {columns.map((column: string) => (
               <th key={column} className="px-3 py-2 font-medium">{labelFor(column)}</th>
             ))}
-            {(onDelete || endpoint) && <th className="px-3 py-2 text-right font-medium">Action</th>}
+            {(onDelete || endpoint || onEdit) && <th className="px-3 py-2 text-right font-medium">Action</th>}
           </tr>
-        </thead>
-        <tbody>
-          {rows.map((row: Entity) => (
-            <tr key={row.id} className="border-b border-zinc-100 dark:border-zinc-800">
+          </thead>
+          <tbody>
+            {filteredRows.map((row: Entity) => (
+              <tr key={row.id} className="border-b border-zinc-100 dark:border-zinc-800">
               {columns.map((column: string) => (
                 <td key={column} className="px-3 py-2" title={String(displayValue(row[column]))}>
                   {displayValue(row[column])}
                 </td>
               ))}
-              {(onDelete || endpoint) && (
-                <td className="px-3 py-2 text-right">
-                  <button
-                    onClick={() => deleteRow(row.id)}
-                    className="inline-flex h-8 w-8 items-center justify-center rounded-md text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40"
-                  >
-                    <Trash2 size={15} />
-                  </button>
+              {(onDelete || endpoint || onEdit) && (
+                <td className="px-3 py-2 text-right whitespace-nowrap">
+                  {onEdit && (
+                    <button
+                      onClick={() => onEdit(row)}
+                      title="Edit"
+                      className="inline-flex h-8 w-8 items-center justify-center rounded-md text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 mr-1"
+                    >
+                      <Pencil size={15} />
+                    </button>
+                  )}
+                  {(onDelete || endpoint) && (
+                    <button
+                      onClick={() => deleteRow(row.id)}
+                      title="Delete"
+                      className="inline-flex h-8 w-8 items-center justify-center rounded-md text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40"
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  )}
                 </td>
               )}
             </tr>
           ))}
-          {rows.length === 0 && (
+          {filteredRows.length === 0 && (
             <tr>
-              <td colSpan={columns.length + (onDelete || endpoint ? 1 : 0)} className="px-3 py-8 text-center text-zinc-500">
-                No records yet.
+              <td colSpan={columns.length + (onDelete || endpoint || onEdit ? 1 : 0)} className="px-3 py-8 text-center text-zinc-500">
+                {rows.length === 0 ? 'No records yet.' : 'No matching results.'}
               </td>
             </tr>
           )}
         </tbody>
       </table>
+    </div>
     </div>
   );
 }
@@ -660,23 +826,25 @@ function ActionButton({ label, onClick }: { label: string; onClick: () => void }
     </button>
   );
 }
-
 function Input({
   value,
   onChange,
   placeholder,
   type = 'text',
+  autoComplete = 'off',
 }: {
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
   type?: string;
+  autoComplete?: string;
 }) {
   return (
     <input
       type={type}
       value={value}
       placeholder={placeholder}
+      autoComplete={autoComplete}
       onChange={(event) => onChange(event.target.value)}
       className="h-10 rounded-lg border border-zinc-300 bg-white px-3 text-sm outline-none focus:border-sky-600 focus:ring-2 focus:ring-sky-600/20 dark:border-zinc-700 dark:bg-zinc-950"
     />
@@ -738,4 +906,14 @@ function displayValue(value: any) {
 
 function labelFor(value: string) {
   return value.replace(/([A-Z])/g, ' $1').replace(/^./, (char) => char.toUpperCase());
+}
+
+function flattenRow(row: any) {
+  const flat = { ...row };
+  for (const [key, value] of Object.entries(row)) {
+    if (value && typeof value === 'object' && 'id' in value) {
+      flat[`${key}Id`] = (value as any).id;
+    }
+  }
+  return flat;
 }

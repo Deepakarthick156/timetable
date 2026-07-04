@@ -33,6 +33,10 @@ public class AuthService {
         userRepository.save(user);
 
         if (user.getRole() == Role.STUDENT) {
+            if (studentRepository.existsByRegisterNumber(request.getRegisterNumber())) {
+                throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.BAD_REQUEST, "Register number already exists");
+            }
+
             var student = new Student();
             student.setUser(user);
             student.setRegisterNumber(request.getRegisterNumber());

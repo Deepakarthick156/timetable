@@ -140,11 +140,16 @@ public class StudentPortalController {
     @PostMapping("/chat")
     public ResponseEntity<Map<String, String>> chatWithAi(@RequestBody Map<String, String> request) {
         String question = request.get("question");
+        String history = request.get("history");
         Optional<Student> studentOpt = currentStudent();
         
         if (studentOpt.isPresent()) {
             Student student = studentOpt.get();
             StringBuilder contextBuilder = new StringBuilder();
+            
+            if (history != null && !history.isBlank()) {
+                contextBuilder.append("Recent Conversation History:\n").append(history).append("\n\n");
+            }
             
             List<Timetable> timetable = timetableService.getTimetableForStudent(student.getUser().getId());
             contextBuilder.append("Timetable:\n");
@@ -152,7 +157,7 @@ public class StudentPortalController {
                     t.getDayOfWeek(), t.getStartTime(), t.getEndTime(), 
                     t.getSubject() != null ? t.getSubject().getName() : "", 
                     t.getFaculty() != null ? t.getFaculty().getName() : "", 
-                    t.getClassroom() != null ? t.getClassroom().getRoomNumber() : "")));
+                    t.getClassroom() != null ? t.getClassroom().getRoomNumber() + (t.getClassroom().getAddress() != null && !t.getClassroom().getAddress().isEmpty() ? ", Address: " + t.getClassroom().getAddress() : "") : "")));
             
             contextBuilder.append("\nAnnouncements:\n");
             announcementRepository.findAll().stream()

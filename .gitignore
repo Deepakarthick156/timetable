@@ -63,4 +63,4 @@ application-dev.properties
 *.sqlite3
 .aws/
 .gcp/
-.azure/
+.azure/

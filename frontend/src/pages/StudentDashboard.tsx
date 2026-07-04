@@ -19,6 +19,7 @@ import {
 import { api } from '../lib/axiosInstance';
 import { useDarkMode } from '../hooks/useDarkMode';
 import { useAuthStore } from '../store/useAuthStore';
+import NextClassCard from '../components/NextClassCard';
 
 type NamedEntity = {
   id: number;
@@ -209,7 +210,8 @@ export default function StudentDashboard() {
     setLoading(true);
 
     try {
-      const res = await api.post('/student/chat', { question: trimmed });
+      const historyText = messages.slice(-4).map(m => `${m.sender === 'user' ? 'User' : 'Assistant'}: ${m.text}`).join('\n');
+      const res = await api.post('/student/chat', { question: trimmed, history: historyText });
       setMessages((prev) => [...prev, { sender: 'ai', text: res.data.response }]);
     } catch {
       setMessages((prev) => [...prev, { sender: 'ai', text: 'I could not reach the timetable assistant service right now.' }]);
@@ -293,10 +295,12 @@ export default function StudentDashboard() {
           </div>
 
           {activeTab === 'schedule' ? (
-            <div className="grid gap-4 md:grid-cols-[0.9fr_1.1fr]">
-              <div className="rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
-                <div className="mb-4 flex items-center justify-between">
-                  <h2 className="flex items-center gap-2 text-base font-semibold">
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-col">
+                <NextClassCard timetable={timetable} />
+                <div className="rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
+                  <div className="mb-4 flex items-center justify-between">
+                    <h2 className="flex items-center gap-2 text-base font-semibold">
                     <CalendarDays size={18} /> Today
                   </h2>
                   <span className="rounded-md bg-amber-100 px-2 py-1 text-xs font-medium text-amber-800 dark:bg-amber-400/15 dark:text-amber-200">
@@ -311,6 +315,7 @@ export default function StudentDashboard() {
                   ) : (
                     todayEntries.map((entry) => <ScheduleCard key={entry.id} entry={entry} />)
                   )}
+                </div>
                 </div>
               </div>
 

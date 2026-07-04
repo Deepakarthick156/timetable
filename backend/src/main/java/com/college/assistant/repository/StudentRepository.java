@@ -8,4 +8,6 @@ import java.util.Optional;
 @Repository
 public interface StudentRepository extends MongoRepository<Student, String> {
     Optional<Student> findByUser_Id(String userId);
+    boolean existsByRegisterNumber(String registerNumber);
+    Optional<Student> findByRegisterNumber(String registerNumber);
 }
