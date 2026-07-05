@@ -17,9 +17,7 @@ public class Announcement {
     private String content;
     private LocalDateTime createdAt = LocalDateTime.now();
 
-    @DBRef(lazy = true)
-    private Department targetDepartment;
+    private String targetDepartmentId;
 
-    @DBRef(lazy = true)
-    private AcademicYear targetYear;
+    private String targetYearId;
 }

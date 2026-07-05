@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { BookOpen, UserRound, MapPin, Clock3, Hourglass } from 'lucide-react';
 
 type NamedEntity = {
@@ -48,7 +48,7 @@ function getCountdownString(diffSecs: number) {
   return `${h}h ${m}m`;
 }
 
-export default function NextClassCard({ timetable }: { timetable: TimetableEntry[] }) {
+export default function NextClassCard({ timetable, holidays = [] }: { timetable: TimetableEntry[], holidays?: any[] }) {
   const [now, setNow] = useState(new Date());
 
   useEffect(() => {
@@ -71,9 +71,19 @@ export default function NextClassCard({ timetable }: { timetable: TimetableEntry
         .sort((a, b) => parseTimeSecs(a.startTime) - parseTimeSecs(b.startTime))
     }));
 
+    const isHoliday = (date: Date) => {
+      // Create a local date string YYYY-MM-DD to match holiday dates which might be strings
+      const localDateStr = new Date(date.getTime() - (date.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+      return holidays.some(h => {
+        if (!h.holidayDate) return false;
+        // The API returns strings like "2026-07-05T00:00:00.000+00:00" or "2026-07-05"
+        return h.holidayDate.startsWith(localDateStr);
+      });
+    };
+
     // Check today's classes
     const todayIndex = dayOrder.indexOf(currentDayName);
-    const todayClasses = grouped[todayIndex]?.entries || [];
+    const todayClasses = isHoliday(now) ? [] : (grouped[todayIndex]?.entries || []);
 
     // 1. Ongoing class
     const ongoing = todayClasses.find(
@@ -93,17 +103,21 @@ export default function NextClassCard({ timetable }: { timetable: TimetableEntry
 
     // 3. First class next available day
     let nextDayIndex = (todayIndex + 1) % 7;
-    let daysChecked = 0;
-    while (daysChecked < 7) {
-      const nextClasses = grouped[nextDayIndex]?.entries || [];
+    let daysChecked = 1; // start from tomorrow
+    while (daysChecked <= 7) {
+      const targetDate = new Date(now);
+      targetDate.setDate(targetDate.getDate() + daysChecked);
+      
+      const nextClasses = isHoliday(targetDate) ? [] : (grouped[nextDayIndex]?.entries || []);
+      
       if (nextClasses.length > 0) {
         const nextClass = nextClasses[0];
-        const dayLabel = nextDayIndex === (todayIndex + 1) % 7 ? 'Tomorrow' : (
-            nextDayIndex < todayIndex ? 'Next Monday' : dayOrder[nextDayIndex].charAt(0) + dayOrder[nextDayIndex].slice(1).toLowerCase()
+        const dayLabel = daysChecked === 1 ? 'Tomorrow' : (
+            daysChecked < 7 ? dayOrder[nextDayIndex].charAt(0) + dayOrder[nextDayIndex].slice(1).toLowerCase() : 'Next ' + dayOrder[nextDayIndex].charAt(0) + dayOrder[nextDayIndex].slice(1).toLowerCase()
         );
         
         const isWeekend = currentDayName === 'SATURDAY' || currentDayName === 'SUNDAY';
-        const msg = isWeekend ? 'No classes today.' : 'No more classes today.';
+        const msg = isWeekend ? 'No classes today.' : (daysChecked === 1 ? 'No more classes today.' : 'Upcoming class.');
         return { type: 'future', class: nextClass, diffText: `${msg} Starts ${dayLabel}`, dayLabel };
       }
       nextDayIndex = (nextDayIndex + 1) % 7;
@@ -111,7 +125,7 @@ export default function NextClassCard({ timetable }: { timetable: TimetableEntry
     }
 
     return null;
-  }, [now, timetable]);
+  }, [now, timetable, holidays]);
 
   if (!widgetData) return null;
 

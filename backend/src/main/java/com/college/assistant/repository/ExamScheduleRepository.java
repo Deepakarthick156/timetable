@@ -7,5 +7,5 @@ import java.util.List;
 
 @Repository
 public interface ExamScheduleRepository extends MongoRepository<ExamSchedule, String> {
-    List<ExamSchedule> findByDepartment_IdAndYear_IdAndSection_Id(String departmentId, String yearId, String sectionId);
+    List<ExamSchedule> findByDepartmentIdAndYearIdAndSectionId(String departmentId, String yearId, String sectionId);
 }

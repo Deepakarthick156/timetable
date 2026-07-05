@@ -111,6 +111,9 @@ export default function AdminDashboard() {
   const [data, setData] = useState<Record<string, Entity[]>>({});
   const [editingIds, setEditingIds] = useState<Record<string, string | null>>({});
   const [forms, setForms] = useState<Record<string, Entity>>({});
+  const [timetablePage, setTimetablePage] = useState(0);
+  const [timetableTotalPages, setTimetableTotalPages] = useState(1);
+  const [timetableTotalElements, setTimetableTotalElements] = useState(0);
   const [timetableForm, setTimetableForm] = useState(blankTimetable);
   const [assessmentForm, setAssessmentForm] = useState(blankAssessment);
   const [examForm, setExamForm] = useState(blankExam);
@@ -130,12 +133,12 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     loadAll();
-  }, []);
+  }, [timetablePage]);
 
   const stats = useMemo(
     () => [
       { label: 'Departments', value: departments.length, icon: GraduationCap },
-      { label: 'Timetable Rows', value: timetable.length, icon: CalendarPlus },
+      { label: 'Timetable Rows', value: timetableTotalElements, icon: CalendarPlus },
       { label: 'Students', value: students.length, icon: Users },
       { label: 'Faculty', value: faculty.length, icon: Users },
     ],
@@ -146,7 +149,11 @@ export default function AdminDashboard() {
     const requests = [
       ...simpleResources.map((resource) => api.get(resource.endpoint).then((res) => [resource.key, res.data]).catch(() => [resource.key, []])),
       api.get('/admin/announcements').then((res) => ['announcements', res.data]).catch(() => ['announcements', []]),
-      api.get('/admin/timetables').then((res) => ['timetables', res.data]).catch(() => ['timetables', []]),
+      api.get(`/admin/timetables?page=${timetablePage}&size=10`).then((res) => {
+        setTimetableTotalPages(res.data.totalPages || 1);
+        setTimetableTotalElements(res.data.totalElements || 0);
+        return ['timetables', res.data.content || []];
+      }).catch(() => ['timetables', []]),
       api.get('/admin/facultys').then((res) => ['facultys', res.data]).catch(() => ['facultys', []]),
       api.get('/admin/assessments').then((res) => ['assessments', res.data]).catch(() => ['assessments', []]),
       api.get('/admin/attendance').then((res) => ['attendance', res.data]).catch(() => ['attendance', []]),
@@ -186,7 +193,7 @@ export default function AdminDashboard() {
     const editingId = editingIds['facultys'];
     const data = {
       name: payload.name,
-      department: payload.departmentId ? { id: payload.departmentId } : null,
+      departmentId: payload.departmentId,
     };
     if (editingId) {
       await api.put(`/admin/facultys/${editingId}`, data);
@@ -204,12 +211,12 @@ export default function AdminDashboard() {
       dayOfWeek: timetableForm.dayOfWeek,
       startTime: timetableForm.startTime,
       endTime: timetableForm.endTime,
-      department: { id: timetableForm.departmentId },
-      year: { id: timetableForm.yearId },
-      section: { id: timetableForm.sectionId },
-      subject: { id: timetableForm.subjectId },
-      faculty: { id: timetableForm.facultyId },
-      classroom: { id: timetableForm.classroomId },
+      departmentId: timetableForm.departmentId,
+      yearId: timetableForm.yearId,
+      sectionId: timetableForm.sectionId,
+      subjectId: timetableForm.subjectId,
+      facultyId: timetableForm.facultyId,
+      classroomId: timetableForm.classroomId,
     };
     if (editingId) {
       await api.put(`/admin/timetables/${editingId}`, data);
@@ -226,8 +233,8 @@ export default function AdminDashboard() {
     const data = {
       title: announcementForm.title,
       content: announcementForm.content,
-      targetDepartment: announcementForm.targetDepartmentId ? { id: announcementForm.targetDepartmentId } : null,
-      targetYear: announcementForm.targetYearId ? { id: announcementForm.targetYearId } : null,
+      targetDepartmentId: announcementForm.targetDepartmentId,
+      targetYearId: announcementForm.targetYearId,
     };
     if (editingId) {
       await api.put(`/admin/announcements/${editingId}`, data);
@@ -245,10 +252,10 @@ export default function AdminDashboard() {
       title: assessmentForm.title,
       assessmentDate: assessmentForm.assessmentDate,
       maxMarks: Number(assessmentForm.maxMarks),
-      department: { id: assessmentForm.departmentId },
-      year: { id: assessmentForm.yearId },
-      section: { id: assessmentForm.sectionId },
-      subject: { id: assessmentForm.subjectId },
+      departmentId: assessmentForm.departmentId,
+      yearId: assessmentForm.yearId,
+      sectionId: assessmentForm.sectionId,
+      subjectId: assessmentForm.subjectId,
     };
     if (editingId) {
       await api.put(`/admin/assessments/${editingId}`, data);
@@ -267,11 +274,11 @@ export default function AdminDashboard() {
       examDate: examForm.examDate,
       startTime: examForm.startTime,
       endTime: examForm.endTime,
-      department: { id: examForm.departmentId },
-      year: { id: examForm.yearId },
-      section: { id: examForm.sectionId },
-      subject: { id: examForm.subjectId },
-      classroom: { id: examForm.classroomId },
+      departmentId: examForm.departmentId,
+      yearId: examForm.yearId,
+      sectionId: examForm.sectionId,
+      subjectId: examForm.subjectId,
+      classroomId: examForm.classroomId,
     };
     if (editingId) {
       await api.put(`/admin/exams/${editingId}`, data);
@@ -288,8 +295,8 @@ export default function AdminDashboard() {
     const data = {
       totalClasses: Number(attendanceForm.totalClasses),
       attendedClasses: Number(attendanceForm.attendedClasses),
-      student: { id: attendanceForm.studentId },
-      subject: { id: attendanceForm.subjectId },
+      studentId: attendanceForm.studentId,
+      subjectId: attendanceForm.subjectId,
     };
     if (editingId) {
       await api.put(`/admin/attendance/${editingId}`, data);
@@ -307,8 +314,8 @@ export default function AdminDashboard() {
       assessmentName: internalMarkForm.assessmentName,
       marks: Number(internalMarkForm.marks),
       maxMarks: Number(internalMarkForm.maxMarks),
-      student: { id: internalMarkForm.studentId },
-      subject: { id: internalMarkForm.subjectId },
+      studentId: internalMarkForm.studentId,
+      subjectId: internalMarkForm.subjectId,
     };
     if (editingId) {
       await api.put(`/admin/internalMarks/${editingId}`, data);
@@ -337,9 +344,9 @@ export default function AdminDashboard() {
         await api.put(`/admin/students/${editingId}`, {
           registerNumber: studentForm.registerNumber,
           name: studentForm.name,
-          department: { id: studentForm.departmentId },
-          year: { id: studentForm.yearId },
-          section: { id: studentForm.sectionId },
+          departmentId: studentForm.departmentId,
+          yearId: studentForm.yearId,
+          sectionId: studentForm.sectionId,
         });
         setEditingIds((prev) => ({ ...prev, students: null }));
       } else {
@@ -433,6 +440,7 @@ export default function AdminDashboard() {
                 onDelete={(id: string) => deleteResource(activeSimpleResource.endpoint, id)}
                 editingId={editingIds[activeSimpleResource.key]}
                 setEditingId={(id: string | null) => setEditingIds((prev) => ({ ...prev, [activeSimpleResource.key]: id }))}
+                data={data}
               />
             )}
 
@@ -444,7 +452,7 @@ export default function AdminDashboard() {
                   <Select value={announcementForm.targetDepartmentId} onChange={(value) => setAnnouncementForm((prev) => ({ ...prev, targetDepartmentId: value }))}>
                     <option value="">All departments</option>
                     {departments.map((item) => (
-                      <option key={item.id} value={item.id}>{item.code || item.name}</option>
+                      <option key={item.id} value={item.id}>{item.name}</option>
                     ))}
                   </Select>
                   <Select value={announcementForm.targetYearId} onChange={(value) => setAnnouncementForm((prev) => ({ ...prev, targetYearId: value }))}>
@@ -455,9 +463,9 @@ export default function AdminDashboard() {
                   </Select>
                 </div>
                 <ActionButton label={editingIds['announcements'] ? "Update announcement" : "Add announcement"} onClick={createAnnouncement} />
-                <SimpleRows 
+                <SimpleRows lookupData={data} 
                   rows={data.announcements ?? []} 
-                  columns={['title', 'content', 'targetDepartment', 'targetYear']} 
+                  columns={['title', 'content', 'targetDepartmentId', 'targetYearId']} 
                   endpoint="/admin/announcements" 
                   reload={loadAll} 
                   onEdit={(row: any) => { setAnnouncementForm(flattenRow(row)); setEditingIds(prev => ({...prev, announcements: row.id})) }} 
@@ -472,14 +480,14 @@ export default function AdminDashboard() {
                   <Select value={forms.facultys?.departmentId ?? ''} onChange={(value) => setForms((prev) => ({ ...prev, facultys: { ...prev.facultys, departmentId: value } }))}>
                     <option value="">Department</option>
                     {departments.map((department) => (
-                      <option key={department.id} value={department.id}>{department.code || department.name}</option>
+                        <option key={department.id} value={department.id}>{department.name}</option>
                     ))}
                   </Select>
                   <IconButton label={editingIds['facultys'] ? "Update faculty" : "Add faculty"} onClick={createFaculty} />
                 </div>
-                <SimpleRows 
+                <SimpleRows lookupData={data} 
                   rows={faculty} 
-                  columns={['name', 'department']} 
+                  columns={['name', 'departmentId']} 
                   endpoint="/admin/facultys" 
                   reload={loadAll}
                   onEdit={(row: any) => { setForms(prev => ({...prev, facultys: flattenRow(row)})); setEditingIds(prev => ({...prev, facultys: row.id})) }} 
@@ -492,7 +500,7 @@ export default function AdminDashboard() {
                 <div className="grid gap-2 sm:grid-cols-3">
                   <Select value={timetableForm.departmentId} onChange={(value) => setTimetableForm((prev) => ({ ...prev, departmentId: value }))}>
                     <option value="">Department</option>
-                    {departments.map((item) => <option key={item.id} value={item.id}>{item.code || item.name}</option>)}
+                    {departments.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
                   </Select>
                   <Select value={timetableForm.yearId} onChange={(value) => setTimetableForm((prev) => ({ ...prev, yearId: value }))}>
                     <option value="">Year</option>
@@ -521,13 +529,26 @@ export default function AdminDashboard() {
                   </Select>
                 </div>
                 <ActionButton label={editingIds['timetables'] ? "Update timetable row" : "Add timetable row"} onClick={createTimetable} />
-                <SimpleRows 
+                <SimpleRows lookupData={data} 
                   rows={timetable} 
-                  columns={['dayOfWeek', 'subject', 'faculty', 'classroom']} 
+                  columns={['dayOfWeek', 'subjectId', 'facultyId', 'classroomId']} 
                   endpoint="/admin/timetables" 
                   reload={loadAll}
                   onEdit={(row: any) => { setTimetableForm(flattenRow(row)); setEditingIds(prev => ({...prev, timetables: row.id})) }} 
                 />
+                <div className="flex justify-between items-center mt-4">
+                  <button 
+                    onClick={() => setTimetablePage(Math.max(0, timetablePage - 1))}
+                    disabled={timetablePage === 0}
+                    className="px-4 py-2 bg-zinc-200 rounded disabled:opacity-50 dark:bg-zinc-800"
+                  >Previous</button>
+                  <span className="text-sm">Page {timetablePage + 1} of {timetableTotalPages}</span>
+                  <button 
+                    onClick={() => setTimetablePage(Math.min(timetableTotalPages - 1, timetablePage + 1))}
+                    disabled={timetablePage >= timetableTotalPages - 1}
+                    className="px-4 py-2 bg-zinc-200 rounded disabled:opacity-50 dark:bg-zinc-800"
+                  >Next</button>
+                </div>
               </AdminPanel>
             )}
 
@@ -540,9 +561,9 @@ export default function AdminDashboard() {
                   <RelationSelects form={assessmentForm} setForm={setAssessmentForm} departments={departments} years={years} sections={sections} subjects={subjects} />
                 </div>
                 <ActionButton label={editingIds['assessments'] ? "Update assessment" : "Add assessment"} onClick={createAssessment} />
-                <SimpleRows 
+                <SimpleRows lookupData={data} 
                   rows={data.assessments ?? []} 
-                  columns={['title', 'assessmentDate', 'subject', 'maxMarks']} 
+                  columns={['title', 'assessmentDate', 'subjectId', 'maxMarks']} 
                   endpoint="/admin/assessments" 
                   reload={loadAll}
                   onEdit={(row: any) => { setAssessmentForm(flattenRow(row)); setEditingIds(prev => ({...prev, assessments: row.id})) }} 
@@ -564,9 +585,9 @@ export default function AdminDashboard() {
                   </Select>
                 </div>
                 <ActionButton label={editingIds['exams'] ? "Update exam" : "Add exam"} onClick={createExam} />
-                <SimpleRows 
+                <SimpleRows lookupData={data} 
                   rows={data.exams ?? []} 
-                  columns={['examName', 'examDate', 'subject', 'classroom']} 
+                  columns={['examName', 'examDate', 'subjectId', 'classroomId']} 
                   endpoint="/admin/exams" 
                   reload={loadAll}
                   onEdit={(row: any) => { setExamForm(flattenRow(row)); setEditingIds(prev => ({...prev, exams: row.id})) }} 
@@ -589,9 +610,9 @@ export default function AdminDashboard() {
                   <Input value={attendanceForm.attendedClasses} placeholder="Attended classes" onChange={(value) => setAttendanceForm((prev) => ({ ...prev, attendedClasses: value }))} />
                 </div>
                 <ActionButton label={editingIds['attendance'] ? "Update attendance" : "Add attendance"} onClick={createAttendance} />
-                <SimpleRows 
+                <SimpleRows lookupData={data} 
                   rows={data.attendance ?? []} 
-                  columns={['student', 'subject', 'attendedClasses', 'totalClasses']} 
+                  columns={['studentId', 'subjectId', 'attendedClasses', 'totalClasses']} 
                   endpoint="/admin/attendance" 
                   reload={loadAll}
                   onEdit={(row: any) => { setAttendanceForm(flattenRow(row)); setEditingIds(prev => ({...prev, attendance: row.id})) }} 
@@ -615,9 +636,9 @@ export default function AdminDashboard() {
                   <Input value={internalMarkForm.maxMarks} placeholder="Max marks" onChange={(value) => setInternalMarkForm((prev) => ({ ...prev, maxMarks: value }))} />
                 </div>
                 <ActionButton label={editingIds['internalMarks'] ? "Update internal mark" : "Add internal mark"} onClick={createInternalMark} />
-                <SimpleRows 
+                <SimpleRows lookupData={data} 
                   rows={data.internalMarks ?? []} 
-                  columns={['student', 'subject', 'assessmentName', 'marks', 'maxMarks']} 
+                  columns={['studentId', 'subjectId', 'assessmentName', 'marks', 'maxMarks']} 
                   endpoint="/admin/internalMarks" 
                   reload={loadAll}
                   onEdit={(row: any) => { setInternalMarkForm(flattenRow(row)); setEditingIds(prev => ({...prev, internalMarks: row.id})) }} 
@@ -635,9 +656,9 @@ export default function AdminDashboard() {
                   <RelationSelects form={studentForm} setForm={setStudentForm} departments={departments} years={years} sections={sections} />
                 </div>
                 <ActionButton label={editingIds['students'] ? "Update student account" : "Create student account"} onClick={createStudent} />
-                <SimpleRows 
+                <SimpleRows lookupData={data} 
                   rows={students} 
-                  columns={['registerNumber', 'name', 'department', 'year', 'section']} 
+                  columns={['registerNumber', 'name', 'departmentId', 'yearId', 'sectionId']} 
                   onEdit={(row: any) => { setStudentForm(flattenRow(row)); setEditingIds(prev => ({...prev, students: row.id})) }}
                   onDelete={async (id: string) => { await api.delete(`/admin/students/${id}`); await loadAll(); }}
                 />
@@ -669,7 +690,7 @@ function RelationSelects({
     <>
       <Select value={form.departmentId ?? ''} onChange={(value) => setForm((prev: Entity) => ({ ...prev, departmentId: value }))}>
         <option value="">Department</option>
-        {departments.map((item) => <option key={item.id} value={item.id}>{item.code || item.name}</option>)}
+        {departments.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
       </Select>
       <Select value={form.yearId ?? ''} onChange={(value) => setForm((prev: Entity) => ({ ...prev, yearId: value }))}>
         <option value="">Year</option>
@@ -698,7 +719,7 @@ function AdminPanel({ title, children }: { title: string; children: ReactNode })
   );
 }
 
-function ResourcePanel({ resource, rows, form, setForm, onCreate, onDelete, editingId, setEditingId }: any) {
+function ResourcePanel({ resource, rows, form, setForm, onCreate, onDelete, editingId, setEditingId, data }: any) {
   const handleEdit = (row: any) => {
     setForm(row);
     setEditingId(row.id);
@@ -721,12 +742,12 @@ function ResourcePanel({ resource, rows, form, setForm, onCreate, onDelete, edit
           <IconButton label={editingId ? `Update ${resource.label}` : `Add ${resource.label}`} onClick={onCreate} />
         </div>
       </div>
-      <SimpleRows rows={rows} columns={resource.fields} onDelete={onDelete} onEdit={handleEdit} />
+      <SimpleRows lookupData={data} rows={rows} columns={resource.fields} onDelete={onDelete} onEdit={handleEdit} />
     </div>
   );
 }
 
-function SimpleRows({ rows, columns, onDelete, endpoint, reload, onEdit }: any) {
+function SimpleRows({ rows, columns, onDelete, endpoint, reload, onEdit, lookupData }: any) {
   const [searchQuery, setSearchQuery] = useState('');
 
   const filteredRows = useMemo(() => {
@@ -734,7 +755,7 @@ function SimpleRows({ rows, columns, onDelete, endpoint, reload, onEdit }: any) 
     const lower = searchQuery.toLowerCase();
     return rows.filter((row: Entity) => {
       return columns.some((col: string) => {
-        const val = displayValue(row[col]);
+        const val = displayValue(row[col], lookupData);
         return String(val).toLowerCase().includes(lower);
       });
     });
@@ -768,7 +789,7 @@ function SimpleRows({ rows, columns, onDelete, endpoint, reload, onEdit }: any) 
           <thead>
             <tr className="border-b border-zinc-200 text-xs uppercase text-zinc-500 dark:border-zinc-800">
             {columns.map((column: string) => (
-              <th key={column} className="px-3 py-2 font-medium">{labelFor(column)}</th>
+              <th key={column} className="px-3 py-2 font-medium">{labelFor(column.replace(/Id$/, ""))}</th>
             ))}
             {(onDelete || endpoint || onEdit) && <th className="px-3 py-2 text-right font-medium">Action</th>}
           </tr>
@@ -777,8 +798,8 @@ function SimpleRows({ rows, columns, onDelete, endpoint, reload, onEdit }: any) 
             {filteredRows.map((row: Entity) => (
               <tr key={row.id} className="border-b border-zinc-100 dark:border-zinc-800">
               {columns.map((column: string) => (
-                <td key={column} className="px-3 py-2" title={String(displayValue(row[column]))}>
-                  {displayValue(row[column])}
+                <td key={column} className="px-3 py-2" title={String(displayValue(row[column], lookupData))}>
+                  {displayValue(row[column], lookupData)}
                 </td>
               ))}
               {(onDelete || endpoint || onEdit) && (
@@ -896,10 +917,16 @@ function normalizePayload(payload: Entity) {
   );
 }
 
-function displayValue(value: any) {
+function displayValue(value: any, lookupData?: any) {
   if (value == null) return '-';
+  if (lookupData && typeof value === 'string' && value.length === 24) {
+    for (const key in lookupData) {
+      const match = lookupData[key].find((item: any) => item.id === value);
+      if (match) return match.name || match.code || match.yearName || match.roomNumber || match.title || match.registerNumber || `#${match.id}`;
+    }
+  }
   if (typeof value === 'object') {
-    return value.code || value.name || value.yearName || value.roomNumber || value.title || value.registerNumber || `#${value.id}`;
+    return value.name || value.code || value.yearName || value.roomNumber || value.title || value.registerNumber || `#${value.id}`;
   }
   return String(value);
 }

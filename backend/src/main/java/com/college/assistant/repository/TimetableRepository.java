@@ -7,5 +7,5 @@ import java.util.List;
 
 @Repository
 public interface TimetableRepository extends MongoRepository<Timetable, String> {
-    List<Timetable> findByDepartment_IdAndYear_IdAndSection_Id(String departmentId, String yearId, String sectionId);
+    List<Timetable> findByDepartmentIdAndYearIdAndSectionId(String departmentId, String yearId, String sectionId);
 }

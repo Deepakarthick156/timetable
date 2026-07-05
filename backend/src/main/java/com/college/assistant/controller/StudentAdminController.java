@@ -27,7 +27,16 @@ public class StudentAdminController {
                 throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.BAD_REQUEST, "Register number already exists");
             }
         });
-        student.setId(id);
-        return studentRepository.save(student);
+        
+        Student existingStudent = studentRepository.findById(id)
+            .orElseThrow(() -> new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.NOT_FOUND, "Student not found"));
+            
+        existingStudent.setRegisterNumber(student.getRegisterNumber());
+        existingStudent.setName(student.getName());
+        existingStudent.setDepartmentId(student.getDepartmentId());
+        existingStudent.setYearId(student.getYearId());
+        existingStudent.setSectionId(student.getSectionId());
+        
+        return studentRepository.save(existingStudent);
     }
 }

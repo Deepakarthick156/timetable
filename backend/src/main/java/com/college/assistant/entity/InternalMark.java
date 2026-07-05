@@ -15,9 +15,7 @@ public class InternalMark {
     private Double marks;
     private Double maxMarks;
 
-    @DBRef
-    private Student student;
+    private String studentId;
 
-    @DBRef
-    private Subject subject;
+    private String subjectId;
 }

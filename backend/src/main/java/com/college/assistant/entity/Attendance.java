@@ -14,9 +14,7 @@ public class Attendance {
     private Integer totalClasses;
     private Integer attendedClasses;
 
-    @DBRef
-    private Student student;
+    private String studentId;
 
-    @DBRef
-    private Subject subject;
+    private String subjectId;
 }

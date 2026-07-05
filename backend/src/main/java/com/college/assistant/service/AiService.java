@@ -8,6 +8,8 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import com.college.assistant.repository.*;
+import com.college.assistant.entity.*;
 import org.springframework.web.client.RestTemplate;
 
 import java.time.DayOfWeek;
@@ -32,8 +34,15 @@ public class AiService {
     private String model;
 
     private final RestTemplate restTemplate;
+    private final SubjectRepository subjectRepository;
+    private final FacultyRepository facultyRepository;
+    private final ClassroomRepository classroomRepository;
 
-    public AiService() {
+    @org.springframework.beans.factory.annotation.Autowired
+    public AiService(SubjectRepository subjectRepository, FacultyRepository facultyRepository, ClassroomRepository classroomRepository) {
+        this.subjectRepository = subjectRepository;
+        this.facultyRepository = facultyRepository;
+        this.classroomRepository = classroomRepository;
         org.springframework.http.client.SimpleClientHttpRequestFactory factory = new org.springframework.http.client.SimpleClientHttpRequestFactory();
         factory.setConnectTimeout(10000);
         factory.setReadTimeout(60000);
@@ -44,23 +53,34 @@ public class AiService {
         if (question == null || question.isBlank()) {
             return "How can I help you today?";
         }
-
+        
+        String q = question.toLowerCase(Locale.ROOT);
+        
         if (apiKey == null || apiKey.isBlank() || apiKey.equals("mock-key")) {
             return "I can answer basic timetable questions. For full AI capability, an API key is required.";
         }
 
         String currentDate = java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ofPattern("EEEE, yyyy-MM-dd"));
+        String tomorrowDate = java.time.LocalDate.now().plusDays(1).format(java.time.format.DateTimeFormatter.ofPattern("EEEE, yyyy-MM-dd"));
         String prompt = "You are a highly efficient AI College TimeTable Assistant. " 
-                + "CRITICAL INSTRUCTIONS: Provide ONLY the abstract information requested. Be extremely brief and direct. Do not include any conversational filler, assumptions, explanations, or boilerplate (e.g., do not say 'Considering your current dashboard' or 'Assuming you mean'). Just output the requested details directly. "
+                + "CRITICAL INSTRUCTIONS: Provide ONLY the abstract information requested. Be extremely brief, direct, and professional. Do not include any conversational filler, emojis, exclamations, assumptions, explanations, or boilerplate (e.g., do not say 'enjoy', 'Considering your current dashboard' or 'Assuming you mean'). Just output the requested details directly in a formal tone. "
                 + "1. GREETINGS: If the user says hello, hi, or hlo, respond naturally and politely, and ask how you can help them. "
                 + "2. COUNTING: If asked to count things (like 'how many days have a lab' or 'how many holidays'), CAREFULLY COUNT the unique entries in your context before answering to ensure your number matches the items you list. "
-                + "3. HOLIDAYS: If asked whether a specific day is a holiday (e.g. 'is tomorrow a holiday'), and it is listed as a 'Weekend/No Class Holiday' or any other holiday, you MUST answer 'Yes'. Never start with 'No' if it is a holiday. "
+                + "3. HOLIDAYS: When listing holidays, use a strictly formal and abstract tone (e.g., 'July 10 is a holiday'). Remove any informal remarks, emojis, or slang (like 'enjoyyyy' or 'yay') that might be present in the holiday name from the database. Just state the date and that it is a holiday. ABSOLUTELY NEVER invent, guess, or hallucinate reasons for a holiday (e.g., do not say 'due to heavy rain' or 'due to maintenance'). If no reason is explicitly provided, simply state it is a holiday. Never start with 'No' if it is a holiday. If the user asks if a specific day (like tomorrow) is a holiday, and it is NOT in the holiday list, you MUST answer explicitly: 'No, tomorrow is a working day.' or 'No, it is a working day.' "
                 + "4. DEFAULT DAY: If the user asks about their schedule, free hours, classes, or labs without specifying a day (e.g., 'Do I have any free hours?'), assume they are asking about TODAY. "
-                + "5. NO CLASSES/HOLIDAY SCHEDULE: If they ask about classes or free hours on a day that is a holiday or a weekend with no classes, explicitly tell them that it is a holiday or they have no classes, instead of listing free hours for other days. "
-                + "6. TONE & FORMAT: Use natural phrasing for days (like 'tomorrow' or 'Monday'). NEVER output robotic full dates (like 2026-07-05) in your answers. Keep negative answers ultra-simple, like 'No labs tomorrow' or 'No'. "
-                + "7. EXACT DATES & DAYS: Never recalculate or guess the day of the week. Today's exact date and day are provided below. Trust this information exactly as written. "
-                + "Today is " + currentDate + ". "
+                + "5. NEXT CLASS / HOLIDAYS: If they ask for their next class and the immediate next day is a holiday, DO NOT say they have a class on the holiday. Skip the holiday entirely and state their actual next class on a valid working day. Make sure your sentences are logically sound and do not contradict themselves. "
+                + "6. TONE & FORMAT: Use natural phrasing for days (like 'tomorrow' or 'Monday'). Use proper grammar, avoid run-on sentences, and speak like a helpful but strictly professional human assistant. NEVER output robotic full dates (like 2026-07-05) in your answers, use relative terms like 'tomorrow' or natural dates like 'July 10'. Keep negative answers ultra-simple, like 'No labs tomorrow' or 'No'. "
+                + "7. EXACT DATES & DAYS: Never recalculate or guess the day of the week. Today's exact date and day (and tomorrow's) are provided below. Trust this information exactly as written. "
+                + "8. FREE HOURS: A 'free hour' or 'free period' is ONLY an empty gap BETWEEN TWO CLASSES ON THE SAME DAY. Do not count the time after classes end for the day, or overnight time between days, as 'free hours'. If there are no gaps between classes on a given day, state clearly that they have no free hours that day. "
+                + "9. GRACEFUL NEGATIVE ANSWERS: If a specific person (e.g., a professor) is asked about and not found in the timetable, respond formally like '[Name] does not take any classes for you.' Do not say they 'cannot be found in your timetable'. NEVER list out all the other professors, subjects, or items you checked. Give a direct, formal, and brief answer. "
+                + "10. EXAMS: If the user asks about exams or tests and there are no exams listed in the context, you MUST strictly reply with exactly: 'No exam scheduled yet.' Do not say 'There is no information in the context'. "
+                + "11. LABS: Labs are explicitly marked with the '[LAB]' tag in the timetable. If the user asks if they have a lab, look ONLY for classes that start with '[LAB]'. Ignore the room name entirely. "
+                + "Today is " + currentDate + ". Tomorrow is " + tomorrowDate + ". "
                 + "Here is the student's current dashboard context:\n" + contextData + "\n\nUser Question: " + question;
+
+        System.out.println("----- AI PROMPT START -----");
+        System.out.println(prompt);
+        System.out.println("----- AI PROMPT END -----");
 
         try {
             if (apiKey.startsWith("gsk_")) {
@@ -109,6 +129,20 @@ public class AiService {
         } catch (Exception e) {
             return "Error calling AI API: " + e.getMessage();
         }
+    }
+
+    private String extractContextSection(String contextData, String startMarker, String endMarker, String emptyMessage) {
+        int start = contextData.indexOf(startMarker);
+        if (start == -1) return emptyMessage;
+        
+        start += startMarker.length();
+        int end = endMarker != null ? contextData.indexOf(endMarker, start) : -1;
+        if (end == -1) end = contextData.length();
+        
+        String section = contextData.substring(start, end).trim();
+        if (section.isEmpty()) return emptyMessage;
+        
+        return section;
     }
 
     private String answerFromTimetable(String question, List<Timetable> timetableList) {
@@ -230,10 +264,13 @@ public class AiService {
         return false;
     }
 
-    private Optional<Timetable> findSubjectMatch(String q, List<Timetable> timetable) {
+        private Optional<Timetable> findSubjectMatch(String q, List<Timetable> timetable) {
         return timetable.stream().filter(t -> {
-            String name = t.getSubject() != null && t.getSubject().getName() != null ? t.getSubject().getName().toLowerCase(Locale.ROOT) : "";
-            String code = t.getSubject() != null && t.getSubject().getCode() != null ? t.getSubject().getCode().toLowerCase(Locale.ROOT) : "";
+            if (t.getSubjectId() == null) return false;
+            Subject s = subjectRepository.findById(t.getSubjectId()).orElse(null);
+            if (s == null) return false;
+            String name = s.getName() != null ? s.getName().toLowerCase(java.util.Locale.ROOT) : "";
+            String code = s.getCode() != null ? s.getCode().toLowerCase(java.util.Locale.ROOT) : "";
             return (!name.isBlank() && q.contains(name)) || (!code.isBlank() && q.contains(code));
         }).findFirst();
     }
@@ -325,28 +362,34 @@ public class AiService {
         return "- " + timeRange(t) + ": " + subjectLabel(t) + " with " + facultyName(t) + " in " + roomLabel(t);
     }
 
-    private String subjectLabel(Timetable t) {
-        String name = t.getSubject() != null ? t.getSubject().getName() : "Class";
-        String code = t.getSubject() != null ? t.getSubject().getCode() : null;
+        private String subjectLabel(Timetable t) {
+        if (t.getSubjectId() == null) return "Class";
+        Subject s = subjectRepository.findById(t.getSubjectId()).orElse(null);
+        String name = s != null ? s.getName() : "Class";
+        String code = s != null ? s.getCode() : null;
         return code == null || code.isBlank() ? name : name + " (" + code + ")";
     }
 
-    private String facultyName(Timetable t) {
-        return t.getFaculty() == null || t.getFaculty().getName() == null ? "the assigned faculty" : t.getFaculty().getName();
+        private String facultyName(Timetable t) {
+        if (t.getFacultyId() == null) return "the assigned faculty";
+        Faculty f = facultyRepository.findById(t.getFacultyId()).orElse(null);
+        return f == null || f.getName() == null ? "the assigned faculty" : f.getName();
     }
 
-    private String roomLabel(Timetable t) {
-        if (t.getClassroom() == null) {
-            return "the assigned room";
-        }
-        String type = t.getClassroom().getType();
-        return (type == null || type.isBlank() ? "Room" : type) + " " + t.getClassroom().getRoomNumber();
+        private String roomLabel(Timetable t) {
+        if (t.getClassroomId() == null) return "the assigned room";
+        Classroom c = classroomRepository.findById(t.getClassroomId()).orElse(null);
+        if (c == null) return "the assigned room";
+        String type = c.getType();
+        return (type == null || type.isBlank() ? "Room" : type) + " " + c.getRoomNumber();
     }
 
-    private boolean isLab(Timetable t) {
-        String subjectType = t.getSubject() != null && t.getSubject().getType() != null ? t.getSubject().getType().toLowerCase(Locale.ROOT) : "";
-        String roomType = t.getClassroom() != null && t.getClassroom().getType() != null ? t.getClassroom().getType().toLowerCase(Locale.ROOT) : "";
-        String subjectName = t.getSubject() != null && t.getSubject().getName() != null ? t.getSubject().getName().toLowerCase(Locale.ROOT) : "";
+        private boolean isLab(Timetable t) {
+        Subject s = t.getSubjectId() != null ? subjectRepository.findById(t.getSubjectId()).orElse(null) : null;
+        Classroom c = t.getClassroomId() != null ? classroomRepository.findById(t.getClassroomId()).orElse(null) : null;
+        String subjectType = s != null && s.getType() != null ? s.getType().toLowerCase(java.util.Locale.ROOT) : "";
+        String roomType = c != null && c.getType() != null ? c.getType().toLowerCase(java.util.Locale.ROOT) : "";
+        String subjectName = s != null && s.getName() != null ? s.getName().toLowerCase(java.util.Locale.ROOT) : "";
         return subjectType.contains("lab") || roomType.contains("lab") || subjectName.contains("lab");
     }
 

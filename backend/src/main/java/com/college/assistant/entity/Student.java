@@ -14,15 +14,11 @@ public class Student {
     private String registerNumber;
     private String name;
 
-    @DBRef
-    private Department department;
+    private String departmentId;
 
-    @DBRef
-    private AcademicYear year;
+    private String yearId;
 
-    @DBRef
-    private Section section;
+    private String sectionId;
 
-    @DBRef
-    private User user;
+    private String userId;
 }

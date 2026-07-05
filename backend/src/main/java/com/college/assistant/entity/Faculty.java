@@ -13,6 +13,5 @@ public class Faculty {
 
     private String name;
 
-    @DBRef
-    private Department department;
+    private String departmentId;
 }

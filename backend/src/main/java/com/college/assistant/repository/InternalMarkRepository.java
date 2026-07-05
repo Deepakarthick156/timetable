@@ -7,5 +7,5 @@ import java.util.List;
 
 @Repository
 public interface InternalMarkRepository extends MongoRepository<InternalMark, String> {
-    List<InternalMark> findByStudent_Id(String studentId);
+    List<InternalMark> findByStudentId(String studentId);
 }

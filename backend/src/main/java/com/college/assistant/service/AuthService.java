@@ -38,13 +38,13 @@ public class AuthService {
             }
 
             var student = new Student();
-            student.setUser(user);
+            student.setUserId(user.getId());
             student.setRegisterNumber(request.getRegisterNumber());
             student.setName(request.getName());
             
-            departmentRepository.findById(request.getDepartmentId()).ifPresent(student::setDepartment);
-            yearRepository.findById(request.getYearId()).ifPresent(student::setYear);
-            sectionRepository.findById(request.getSectionId()).ifPresent(student::setSection);
+            student.setDepartmentId(request.getDepartmentId());
+            student.setYearId(request.getYearId());
+            student.setSectionId(request.getSectionId());
             
             studentRepository.save(student);
         }

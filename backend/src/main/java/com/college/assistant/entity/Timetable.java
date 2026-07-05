@@ -13,25 +13,28 @@ public class Timetable {
     @Id
     private String id;
 
-    @DBRef
-    private Department department;
+    private String departmentId;
 
-    @DBRef
-    private AcademicYear year;
+    private String yearId;
 
-    @DBRef
-    private Section section;
+    private String sectionId;
 
     private String dayOfWeek;
     private LocalTime startTime;
     private LocalTime endTime;
 
-    @DBRef
+    private String subjectId;
+    
+    @org.springframework.data.annotation.Transient
     private Subject subject;
 
-    @DBRef
+    private String facultyId;
+    
+    @org.springframework.data.annotation.Transient
     private Faculty faculty;
 
-    @DBRef
+    private String classroomId;
+    
+    @org.springframework.data.annotation.Transient
     private Classroom classroom;
 }

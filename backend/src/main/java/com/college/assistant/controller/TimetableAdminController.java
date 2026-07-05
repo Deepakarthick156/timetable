@@ -16,8 +16,10 @@ public class TimetableAdminController {
     private final TimetableRepository repository;
 
     @GetMapping
-    public List<Timetable> getAll() {
-        return repository.findAll();
+    public org.springframework.data.domain.Page<Timetable> getAll(
+            @org.springframework.web.bind.annotation.RequestParam(defaultValue = "0") int page,
+            @org.springframework.web.bind.annotation.RequestParam(defaultValue = "20") int size) {
+        return repository.findAll(org.springframework.data.domain.PageRequest.of(page, size));
     }
 
     @PostMapping

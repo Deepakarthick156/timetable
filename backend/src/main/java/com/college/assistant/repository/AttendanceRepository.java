@@ -7,5 +7,5 @@ import java.util.List;
 
 @Repository
 public interface AttendanceRepository extends MongoRepository<Attendance, String> {
-    List<Attendance> findByStudent_Id(String studentId);
+    List<Attendance> findByStudentId(String studentId);
 }

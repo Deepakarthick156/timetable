@@ -7,5 +7,5 @@ import java.util.List;
 
 @Repository
 public interface AssessmentRepository extends MongoRepository<Assessment, String> {
-    List<Assessment> findByDepartment_IdAndYear_IdAndSection_Id(String departmentId, String yearId, String sectionId);
+    List<Assessment> findByDepartmentIdAndYearIdAndSectionId(String departmentId, String yearId, String sectionId);
 }

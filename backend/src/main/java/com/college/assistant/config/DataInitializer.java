@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
+import org.springframework.data.mongodb.core.MongoTemplate;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
@@ -27,6 +28,7 @@ public class DataInitializer implements CommandLineRunner {
     private final ClassroomRepository classroomRepository;
     private final TimetableRepository timetableRepository;
     private final AnnouncementRepository announcementRepository;
+    private final MongoTemplate mongoTemplate;
     private final HolidayRepository holidayRepository;
     private final AssessmentRepository assessmentRepository;
     private final ExamScheduleRepository examScheduleRepository;
@@ -106,10 +108,10 @@ public class DataInitializer implements CommandLineRunner {
                         ia.setTitle("Internal Assessment - " + sub.getName());
                         ia.setAssessmentDate(LocalDate.now().plusDays(15));
                         ia.setMaxMarks(50);
-                        ia.setDepartment(dept);
-                        ia.setYear(year);
-                        ia.setSection(sec);
-                        ia.setSubject(sub);
+                        ia.setDepartmentId(dept.getId());
+                        ia.setYearId(year.getId());
+                        ia.setSectionId(sec.getId());
+                        ia.setSubjectId(sub.getId());
                         assessmentRepository.save(ia);
 
                         ExamSchedule endSem = new ExamSchedule();
@@ -117,11 +119,11 @@ public class DataInitializer implements CommandLineRunner {
                         endSem.setExamDate(LocalDate.now().plusDays(40));
                         endSem.setStartTime(LocalTime.of(10, 0));
                         endSem.setEndTime(LocalTime.of(13, 0));
-                        endSem.setDepartment(dept);
-                        endSem.setYear(year);
-                        endSem.setSection(sec);
-                        endSem.setSubject(sub);
-                        endSem.setClassroom(classrooms.get(0)); // Generic classroom
+                        endSem.setDepartmentId(dept.getId());
+                        endSem.setYearId(year.getId());
+                        endSem.setSectionId(sec.getId());
+                        endSem.setSubjectId(sub.getId());
+                        endSem.setClassroomId(classrooms.get(0).getId()); // Generic classroom
                         examScheduleRepository.save(endSem);
                     }
 
@@ -137,15 +139,15 @@ public class DataInitializer implements CommandLineRunner {
                             Classroom c = (s.getType().equals("LAB")) ? classrooms.get(1) : classrooms.get(0);
                             
                             Timetable entry = new Timetable();
-                            entry.setDepartment(dept);
-                            entry.setYear(year);
-                            entry.setSection(sec);
+                            entry.setDepartmentId(dept.getId());
+                            entry.setYearId(year.getId());
+                            entry.setSectionId(sec.getId());
                             entry.setDayOfWeek(day.name());
                             entry.setStartTime(LocalTime.parse(times[i][0]));
                             entry.setEndTime(LocalTime.parse(times[i][1]));
-                            entry.setSubject(s);
-                            entry.setFaculty(f);
-                            entry.setClassroom(c);
+                            entry.setSubjectId(s.getId());
+                            entry.setFacultyId(f.getId());
+                            entry.setClassroomId(c.getId());
                             timetableRepository.save(entry);
                         }
                     }
@@ -194,7 +196,7 @@ public class DataInitializer implements CommandLineRunner {
     private Faculty saveFaculty(String name, Department department) {
         Faculty faculty = new Faculty();
         faculty.setName(name);
-        faculty.setDepartment(department);
+        faculty.setDepartmentId(department.getId());
         return facultyRepository.save(faculty);
     }
 

@@ -267,7 +267,7 @@ export default function StudentDashboard() {
               </div>
               <div className="grid grid-cols-2 gap-2 text-sm sm:grid-cols-4">
                 <ContextPill label="Register" value={profile?.registerNumber ?? '-'} />
-                <ContextPill label="Dept" value={profile?.department?.code || profile?.department?.name || '-'} />
+                <ContextPill label="Dept" value={profile?.department?.name || profile?.department?.code || '-'} />
                 <ContextPill label="Year" value={profile?.year?.yearName || String(profile?.year?.level ?? '-')} />
                 <ContextPill label="Section" value={profile?.section?.name ?? '-'} />
               </div>
@@ -297,7 +297,7 @@ export default function StudentDashboard() {
           {activeTab === 'schedule' ? (
             <div className="flex flex-col gap-4">
               <div className="flex flex-col">
-                <NextClassCard timetable={timetable} />
+                <NextClassCard timetable={timetable} holidays={upcomingHolidays} />
                 <div className="rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
                   <div className="mb-4 flex items-center justify-between">
                     <h2 className="flex items-center gap-2 text-base font-semibold">
@@ -595,7 +595,7 @@ function ScheduleCard({ entry }: { entry: TimetableEntry }) {
         <div>
           <h3 className="font-semibold">{entry.subject?.name}</h3>
           <p className="text-xs text-zinc-500 dark:text-zinc-400">
-            {entry.subject?.code} {isLab ? 'Lab' : 'Class'}
+            {entry.subject?.name} {isLab ? 'Lab' : 'Class'}
           </p>
         </div>
         <span

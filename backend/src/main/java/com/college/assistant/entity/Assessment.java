@@ -17,15 +17,11 @@ public class Assessment {
     private LocalDate assessmentDate;
     private Integer maxMarks;
 
-    @DBRef
-    private Department department;
+    private String departmentId;
 
-    @DBRef
-    private AcademicYear year;
+    private String yearId;
 
-    @DBRef
-    private Section section;
+    private String sectionId;
 
-    @DBRef
-    private Subject subject;
+    private String subjectId;
 }
