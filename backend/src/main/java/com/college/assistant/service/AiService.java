@@ -60,22 +60,35 @@ public class AiService {
             return "I can answer basic timetable questions. For full AI capability, an API key is required.";
         }
 
-        String currentDate = java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ofPattern("EEEE, yyyy-MM-dd"));
-        String tomorrowDate = java.time.LocalDate.now().plusDays(1).format(java.time.format.DateTimeFormatter.ofPattern("EEEE, yyyy-MM-dd"));
-        String prompt = "You are a highly efficient AI College TimeTable Assistant. " 
-                + "CRITICAL INSTRUCTIONS: Provide ONLY the abstract information requested. Be extremely brief, direct, and professional. Do not include any conversational filler, emojis, exclamations, assumptions, explanations, or boilerplate (e.g., do not say 'enjoy', 'Considering your current dashboard' or 'Assuming you mean'). Just output the requested details directly in a formal tone. "
+        java.time.LocalDate today = java.time.LocalDate.now();
+        java.time.YearMonth yearMonth = java.time.YearMonth.of(today.getYear(), today.getMonth());
+        int daysInMonth = yearMonth.lengthOfMonth();
+        java.util.List<String> weekendDates = new java.util.ArrayList<>();
+        for (int i = today.getDayOfMonth(); i <= daysInMonth; i++) {
+            java.time.LocalDate d = yearMonth.atDay(i);
+            java.time.DayOfWeek day = d.getDayOfWeek();
+            if (day == java.time.DayOfWeek.SATURDAY || day == java.time.DayOfWeek.SUNDAY) {
+                weekendDates.add(d.format(java.time.format.DateTimeFormatter.ofPattern("MMMM d")));
+            }
+        }
+        String monthInfo = "The remaining weekend holidays (Saturdays and Sundays) in this month are on the following dates: " + String.join(", ", weekendDates) + ". ";
+
+        String currentDate = today.format(java.time.format.DateTimeFormatter.ofPattern("EEEE, yyyy-MM-dd"));
+        String tomorrowDate = today.plusDays(1).format(java.time.format.DateTimeFormatter.ofPattern("EEEE, yyyy-MM-dd"));
+        String prompt = "You are a friendly, helpful, and highly intelligent conversational AI Assistant (similar to ChatGPT) integrated into a College TimeTable application. " 
+                + "CRITICAL INSTRUCTIONS: You have full conversational capabilities and should converse naturally, answer general knowledge questions, and assist the user enthusiastically. Additionally, you have access to the user's real-time college timetable context below. When the user asks timetable or college-related questions, use the context provided to give accurate answers. Feel free to be conversational, use emojis if appropriate, and act like a helpful study buddy. "
                 + "1. GREETINGS: If the user says hello, hi, or hlo, respond naturally and politely, and ask how you can help them. "
                 + "2. COUNTING: If asked to count things (like 'how many days have a lab' or 'how many holidays'), CAREFULLY COUNT the unique entries in your context before answering to ensure your number matches the items you list. "
-                + "3. HOLIDAYS: When listing holidays, use a strictly formal and abstract tone (e.g., 'July 10 is a holiday'). Remove any informal remarks, emojis, or slang (like 'enjoyyyy' or 'yay') that might be present in the holiday name from the database. Just state the date and that it is a holiday. ABSOLUTELY NEVER invent, guess, or hallucinate reasons for a holiday (e.g., do not say 'due to heavy rain' or 'due to maintenance'). If no reason is explicitly provided, simply state it is a holiday. Never start with 'No' if it is a holiday. If the user asks if a specific day (like tomorrow) is a holiday, and it is NOT in the holiday list, you MUST answer explicitly: 'No, tomorrow is a working day.' or 'No, it is a working day.' "
+                + "3. HOLIDAYS: When listing holidays, use a strictly formal and abstract tone. Remove any informal remarks, emojis, or slang (like 'enjoyyyy' or 'yay') that might be present in the holiday name from the database. Just state the date and that it is a holiday. Furthermore, any days of the week (like Saturday and Sunday) that have no classes scheduled in the timetable are also considered holidays. ABSOLUTELY NEVER invent, guess, or hallucinate reasons for a holiday (e.g., do not say 'due to heavy rain' or 'due to maintenance'). If no reason is explicitly provided, simply state it is a holiday. Never start with 'No' if it is a holiday. If the user asks if a specific day (like tomorrow) is a holiday, and it is NOT in the holiday list, you MUST answer explicitly: 'No, tomorrow is a working day.' or 'No, it is a working day.' "
                 + "4. DEFAULT DAY: If the user asks about their schedule, free hours, classes, or labs without specifying a day (e.g., 'Do I have any free hours?'), assume they are asking about TODAY. "
                 + "5. NEXT CLASS / HOLIDAYS: If they ask for their next class and the immediate next day is a holiday, DO NOT say they have a class on the holiday. Skip the holiday entirely and state their actual next class on a valid working day. Make sure your sentences are logically sound and do not contradict themselves. "
-                + "6. TONE & FORMAT: Use natural phrasing for days (like 'tomorrow' or 'Monday'). Use proper grammar, avoid run-on sentences, and speak like a helpful but strictly professional human assistant. NEVER output robotic full dates (like 2026-07-05) in your answers, use relative terms like 'tomorrow' or natural dates like 'July 10'. Keep negative answers ultra-simple, like 'No labs tomorrow' or 'No'. "
+                + "6. TONE & FORMAT: Use natural phrasing for days (like 'tomorrow' or 'Monday'). Be friendly, natural, and conversational in your responses. Never output robotic full dates (like 2026-07-05) in your answers; use relative terms like 'tomorrow' or natural dates like 'July 10'. "
                 + "7. EXACT DATES & DAYS: Never recalculate or guess the day of the week. Today's exact date and day (and tomorrow's) are provided below. Trust this information exactly as written. "
                 + "8. FREE HOURS: A 'free hour' or 'free period' is ONLY an empty gap BETWEEN TWO CLASSES ON THE SAME DAY. Do not count the time after classes end for the day, or overnight time between days, as 'free hours'. If there are no gaps between classes on a given day, state clearly that they have no free hours that day. "
                 + "9. GRACEFUL NEGATIVE ANSWERS: If a specific person (e.g., a professor) is asked about and not found in the timetable, respond formally like '[Name] does not take any classes for you.' Do not say they 'cannot be found in your timetable'. NEVER list out all the other professors, subjects, or items you checked. Give a direct, formal, and brief answer. "
                 + "10. EXAMS: If the user asks about exams or tests and there are no exams listed in the context, you MUST strictly reply with exactly: 'No exam scheduled yet.' Do not say 'There is no information in the context'. "
-                + "11. LABS: Labs are explicitly marked with the '[LAB]' tag in the timetable. If the user asks if they have a lab, look ONLY for classes that start with '[LAB]'. Ignore the room name entirely. "
-                + "Today is " + currentDate + ". Tomorrow is " + tomorrowDate + ". "
+                + "11. LABS: If the user asks about labs, look exclusively for classes that have '[LAB]' in their text in the timetable below. Ignore the room name entirely. "
+                + "Today is " + currentDate + ". Tomorrow is " + tomorrowDate + ". " + monthInfo
                 + "Here is the student's current dashboard context:\n" + contextData + "\n\nUser Question: " + question;
 
         System.out.println("----- AI PROMPT START -----");
@@ -359,7 +372,8 @@ public class AiService {
     }
 
     private String formatLine(Timetable t) {
-        return "- " + timeRange(t) + ": " + subjectLabel(t) + " with " + facultyName(t) + " in " + roomLabel(t);
+        String labTag = isLab(t) ? "[LAB] " : "";
+        return "- " + timeRange(t) + ": " + labTag + subjectLabel(t) + " with " + facultyName(t) + " in " + roomLabel(t);
     }
 
         private String subjectLabel(Timetable t) {

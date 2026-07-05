@@ -25,6 +25,12 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
 
     public AuthenticationResponse register(RegisterRequest request) {
+        if (Role.valueOf(request.getRole().toUpperCase()) == Role.STUDENT) {
+            if (studentRepository.existsByRegisterNumber(request.getRegisterNumber())) {
+                throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.BAD_REQUEST, "Register number already exists");
+            }
+        }
+
         var user = new User();
         user.setUsername(request.getUsername());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
@@ -33,18 +39,15 @@ public class AuthService {
         userRepository.save(user);
 
         if (user.getRole() == Role.STUDENT) {
-            if (studentRepository.existsByRegisterNumber(request.getRegisterNumber())) {
-                throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.BAD_REQUEST, "Register number already exists");
-            }
 
             var student = new Student();
             student.setUserId(user.getId());
             student.setRegisterNumber(request.getRegisterNumber());
             student.setName(request.getName());
             
-            student.setDepartmentId(request.getDepartmentId());
-            student.setYearId(request.getYearId());
-            student.setSectionId(request.getSectionId());
+            student.setDepartmentId(cleanId(request.getDepartmentId()));
+            student.setYearId(cleanId(request.getYearId()));
+            student.setSectionId(cleanId(request.getSectionId()));
             
             studentRepository.save(student);
         }
@@ -58,6 +61,10 @@ public class AuthService {
                 .token(jwtToken)
                 .role(user.getRole().name())
                 .build();
+    }
+
+    private String cleanId(String id) {
+        return (id != null && id.trim().isEmpty()) ? null : id;
     }
 
     public AuthenticationResponse authenticate(AuthenticationRequest request) {

@@ -14,6 +14,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class StudentAdminController {
     private final StudentRepository studentRepository;
+    private final com.college.assistant.repository.UserRepository userRepository;
 
     @GetMapping
     public List<Student> getAll() {
@@ -33,10 +34,25 @@ public class StudentAdminController {
             
         existingStudent.setRegisterNumber(student.getRegisterNumber());
         existingStudent.setName(student.getName());
-        existingStudent.setDepartmentId(student.getDepartmentId());
-        existingStudent.setYearId(student.getYearId());
-        existingStudent.setSectionId(student.getSectionId());
+        existingStudent.setDepartmentId(cleanId(student.getDepartmentId()));
+        existingStudent.setYearId(cleanId(student.getYearId()));
+        existingStudent.setSectionId(cleanId(student.getSectionId()));
         
         return studentRepository.save(existingStudent);
+    }
+    
+    private String cleanId(String id) {
+        return (id != null && id.trim().isEmpty()) ? null : id;
+    }
+    @org.springframework.web.bind.annotation.DeleteMapping("/{id}")
+    public org.springframework.http.ResponseEntity<Void> delete(@org.springframework.web.bind.annotation.PathVariable String id) {
+        Student student = studentRepository.findById(id).orElse(null);
+        if (student != null) {
+            studentRepository.deleteById(id);
+            if (student.getUserId() != null) {
+                userRepository.deleteById(student.getUserId());
+            }
+        }
+        return org.springframework.http.ResponseEntity.ok().build();
     }
 }

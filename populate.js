@@ -7,7 +7,7 @@ async function populate() {
     const authRes = await fetch('http://localhost:8082/api/auth/authenticate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: 'admin2', password: 'password' })
+        body: JSON.stringify({ username: 'admin', password: 'admin123' })
     });
     if (!authRes.ok) {
         console.error("Auth failed");
