@@ -3,8 +3,7 @@ services:
   - type: web
     name: timetable-backend
     env: docker
-    dockerContext: .
-    dockerfilePath: ./backend/Dockerfile
+    rootDir: backend
     envVars:
       - key: SPRING_DATA_MONGODB_URI
         sync: false # You will provide your MongoDB Atlas URI here
