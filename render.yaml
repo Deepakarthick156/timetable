@@ -11,13 +11,20 @@ services:
         sync: false # Provide a secure 64-character secret
       - key: APP_GEMINI_API_KEY
         sync: false # Provide your Gemini API key
+      - key: APP_FRONTEND_URL
+        sync: false # Set to your frontend's Render URL (e.g., https://timetable-frontend.onrender.com)
 
   # Frontend Static Site (React/Vite)
   - type: web
     name: timetable-frontend
     env: static
-    buildCommand: cd frontend && npm install && npm run build
-    staticPublishPath: ./frontend/dist
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
     envVars:
       - key: VITE_API_URL
         sync: false # You will set this to your backend's Render URL (e.g., https://timetable-backend.onrender.com/api)
