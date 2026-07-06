@@ -5,7 +5,7 @@ services:
     env: docker
     rootDir: backend
     envVars:
-      - key: SPRING_DATA_MONGODB_URI
+      - key: MONGODB_URI
         sync: false # You will provide your MongoDB Atlas URI here
       - key: APP_JWT_SECRET
         sync: false # Provide a secure 64-character secret
